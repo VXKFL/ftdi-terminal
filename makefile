@@ -8,10 +8,6 @@ $(DIR):
 	mkdir $(DIR)
 
 .PHONY: clear
-.PHONY: run
 
 clear:
 	rm -Rf build $(TARGET)
-
-run: $(TARGET)
-	sudo ./$(TARGET)
