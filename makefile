@@ -1,13 +1,17 @@
 TARGET=ftdi-terminal
+DIR=build
 
-$(TARGET): main.o
-	g++ -o $(TARGET) main.cpp -L. -lftd2xx -Wl,-rpath,/usr/local/lib -lpthread
+$(DIR)/$(TARGET): $(DIR) main.cpp
+	g++ -o $(DIR)/$(TARGET) main.cpp -L. -lftd2xx -Wl,-rpath,/usr/local/lib -lpthread
 
-main.o: main.cpp
-	g++ -c main.cpp
+$(DIR):
+	mkdir $(DIR)
+
+.PHONY: clear
+.PHONY: run
 
 clear:
-	rm *.o $(TARGET)
+	rm -Rf build $(TARGET)
 
 run: $(TARGET)
 	sudo ./$(TARGET)
