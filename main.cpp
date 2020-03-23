@@ -48,8 +48,20 @@ char* read_ftdi(void* ft_handle) {
 
 int main(int argc, char* argv[]) {
 
-	// SETUP CONSOLE INPUT
+	if(argc != 2) {
+		std::cout << "Please enter baudrate." << std::endl;
+		return 1;
+	}
+	
+	unsigned int baudrate;
+	try {
+		baudrate = std::stoi(argv[1]);
+	} catch (std::exception &e) {
+		std::cout << "Please enter proper baudrate." << std::endl;
+		return 1;
+	}
 
+/* --------------------------- SETUP CONSOLE INPUT -------------------------- */
 	int flags = fcntl(FD, F_GETFL, 0);
 	fcntl(FD, F_SETFL, flags | O_NONBLOCK);										// set stdin (FD = 0) input to non blocking mode
 
@@ -60,10 +72,7 @@ int main(int argc, char* argv[]) {
 	new_tio.c_lflag &=(~ICANON & ~ECHO); 										// disable canonical mode (buffered i/o) and local echo
 	tcsetattr(STDIN_FILENO,TCSANOW,&new_tio);									// set the new settings immediately
 
-	// END SETUP CONSOLE INPUT
-
-	// SETUP FTDI
-
+/* ------------------------------- SETUP FTDI ------------------------------- */
 	void* ft_handle;
     unsigned int ft_status;
     unsigned int num_devs;
@@ -72,18 +81,12 @@ int main(int argc, char* argv[]) {
 	 																								else if (!ft_status) std::cout << num_devs << " devices found." << std::endl;
 																									else std::cout << "Error: " << ft_status << std::endl;
 	ft_status = FT_Open(0, &ft_handle);																if(!ft_status) std::cout << "Device opened."; 			else std::cout << "Error: " << ft_status << " ";
-	ft_status = FT_SetBaudRate(ft_handle, 1000000);													if(!ft_status) std::cout << " Baudrate set."; 			else std::cout << "Error: " << ft_status << " ";
+	ft_status = FT_SetBaudRate(ft_handle, baudrate);												if(!ft_status) std::cout << " Baudrate set."; 			else std::cout << "Error: " << ft_status << " ";
 	ft_status = FT_SetDataCharacteristics(ft_handle, FT_BITS_8, FT_STOP_BITS_1, FT_PARITY_NONE);	if(!ft_status) std::cout << " Bitconfig set."; 			else std::cout << "Error: " << ft_status << " ";
 	ft_status = FT_SetFlowControl(ft_handle, FT_FLOW_NONE, 0, 0);									if(!ft_status) std::cout << " FlowControl set."; 		else std::cout << "Error: " << ft_status << " ";
 																									std::cout << std::endl;
-	// END SETUP FTDI
 
-	// do {
-	// 	c = getchar();
-	// 	if(c != 255)printf("%i ", c);
-	//
-	// } while(c != 'q');
-
+/* -------------------------------- MAIN LOOP ------------------------------- */
 	char repeat = -1;
 	while(true) {
 		std::cout << read_ftdi(ft_handle) << std::flush;
@@ -125,13 +128,10 @@ int main(int argc, char* argv[]) {
 	}
 
 
-	// REST CONSOLE SETTINGS
-
+/* ------------------------ RESTORE CONSOLE SETTINGS ------------------------ */
 	tcsetattr(STDIN_FILENO,TCSANOW,&old_tio); 									// restore the former settings
 	fcntl(FD, F_SETFL, flags & ~O_NONBLOCK);
 	FT_Close(ft_handle);
-
-	// END REST CONSOLE SETTINGS
 
 	return 0;
 }
