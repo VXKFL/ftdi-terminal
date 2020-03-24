@@ -6,6 +6,8 @@
 #include "ftd2xx.h"
 #include <termios.h>
 
+#include <sys/syscall.h>
+
 // zero is the default stdin file descriptor (fd) / socket
 #define FD 0
 #define COVER_COMMAND true
@@ -47,6 +49,15 @@ char* read_ftdi(void* ft_handle) {
 }
 
 int main(int argc, char* argv[]) {
+	
+	/* check if ftdi_sio module is loaded */
+	bool flag_was_module_loaded = false;
+	FILE *fd = popen("lsmod | grep ftdi_sio", "r");
+  	char buf[16];
+  	if (fread (buf, 1, sizeof (buf), fd) > 0) {
+    	flag_was_module_loaded = true;
+		syscall(__NR_delete_module, "ftdi_sio", NULL);
+	}
 
 	if(argc != 2) {
 		std::cout << "Please enter baudrate." << std::endl;
@@ -60,6 +71,8 @@ int main(int argc, char* argv[]) {
 		std::cout << "Please enter proper baudrate." << std::endl;
 		return 1;
 	}
+	
+	
 
 /* --------------------------- SETUP CONSOLE INPUT -------------------------- */
 	int flags = fcntl(FD, F_GETFL, 0);
@@ -133,5 +146,10 @@ int main(int argc, char* argv[]) {
 	fcntl(FD, F_SETFL, flags & ~O_NONBLOCK);
 	FT_Close(ft_handle);
 
+	/* restore ftdi_sio module if it was loaded */
+	if(flag_was_module_loaded) {
+		// std::cout << "Try loading module again" << std::endl;
+		system("sudo modprobe ftdi_sio");
+	}
 	return 0;
 }
