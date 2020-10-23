@@ -8,6 +8,9 @@
 
 #include <sys/syscall.h>
 
+#include <string.h>
+#include <errno.h>
+
 // zero is the default stdin file descriptor (fd) / socket
 #define FD 0
 #define COVER_COMMAND true
@@ -56,7 +59,11 @@ int main(int argc, char* argv[]) {
   	char buf[16];
   	if (fread (buf, 1, sizeof (buf), fd) > 0) {
     	flag_was_module_loaded = true;
-		syscall(__NR_delete_module, "ftdi_sio", NULL);
+		std::cout << "ftdi_sio is loaded, trying to remove" << std::endl;	
+		if (syscall(SYS_delete_module, "ftdi_sio") < 0) {
+			std::cout << "Could not unload ftdi_sio: " << strerror(errno) << std::endl;
+			return 1;
+		}
 	}
 
 	if(argc != 2) {
