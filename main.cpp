@@ -52,22 +52,27 @@ char* read_ftdi(void* ft_handle) {
 }
 
 int main(int argc, char* argv[]) {
-	
 	/* check if ftdi_sio module is loaded */
-	bool flag_was_module_loaded = false;
+	bool flag_was_module_removed = false;
 	FILE *fd = popen("lsmod | grep ftdi_sio", "r");
   	char buf[16];
   	if (fread (buf, 1, sizeof (buf), fd) > 0) {
-    	flag_was_module_loaded = true;
 		std::cout << "ftdi_sio is loaded, trying to remove" << std::endl;	
 		if (syscall(SYS_delete_module, "ftdi_sio") < 0) {
 			std::cout << "Could not unload ftdi_sio: " << strerror(errno) << std::endl;
 			return 1;
 		}
+		flag_was_module_removed = true;
+		
 	}
 
 	if(argc != 2) {
 		std::cout << "Please enter baudrate." << std::endl;
+		
+		if(flag_was_module_removed) {
+			// std::cout << "Try loading module again" << std::endl;
+			system("sudo modprobe ftdi_sio");
+		}
 		return 1;
 	}
 	
@@ -76,6 +81,11 @@ int main(int argc, char* argv[]) {
 		baudrate = std::stoi(argv[1]);
 	} catch (std::exception &e) {
 		std::cout << "Please enter proper baudrate." << std::endl;
+		
+		if(flag_was_module_removed) {
+			// std::cout << "Try loading module again" << std::endl;
+			system("sudo modprobe ftdi_sio");
+		}
 		return 1;
 	}
 	
@@ -149,12 +159,13 @@ int main(int argc, char* argv[]) {
 
 
 /* ------------------------ RESTORE CONSOLE SETTINGS ------------------------ */
+
 	tcsetattr(STDIN_FILENO,TCSANOW,&old_tio); 									// restore the former settings
 	fcntl(FD, F_SETFL, flags & ~O_NONBLOCK);
 	FT_Close(ft_handle);
 
 	/* restore ftdi_sio module if it was loaded */
-	if(flag_was_module_loaded) {
+	if(flag_was_module_removed) {
 		// std::cout << "Try loading module again" << std::endl;
 		system("sudo modprobe ftdi_sio");
 	}
